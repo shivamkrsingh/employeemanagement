@@ -4,7 +4,7 @@
   "scopes": [
     {
       "name": "$XSAPPNAME.User",
-      "description": "Application User"
+      "description": "Application User only"
     }
   ],
   "role-templates": [
