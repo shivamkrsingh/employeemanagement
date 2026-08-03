@@ -1,0 +1,20 @@
+{
+  "xsappname": "employee-management",
+  "tenant-mode": "dedicated",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.User",
+      "description": "Application User"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "User",
+      "description": "Application User",
+      "scope-references": [
+        "$XSAPPNAME.User"
+      ]
+    }
+  ],
+  "attributes": []
+}
