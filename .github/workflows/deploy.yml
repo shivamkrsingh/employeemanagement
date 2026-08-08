@@ -1,57 +1,113 @@
-name: Build and Deploy to BTP Cloud Foundry test
+name: Build and Deploy to SAP BTP Cloud Foundry
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: {}
+push:
+branches:
+- main
+workflow_dispatch:
 
 env:
-  CF_API: ${{ secrets.CF_API }}           # e.g. https://api.cf.eu10.hana.ondemand.com
-  CF_ORG: ${{ secrets.CF_ORG }}
-  CF_SPACE: ${{ secrets.CF_SPACE }}
-  CF_USERNAME: ${{ secrets.CF_USERNAME }}
-  CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
+CF_API: https://api.cf.us10-003.hana.ondemand.com
+CF_ORG: edaa77a3trial
+CF_SPACE: dev
+CF_USERNAME: ${{ secrets.CF_USERNAME }}
+CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+build-and-deploy:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+```
+steps:
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+  # --------------------------------------------------
+  # 1. Checkout source code
+  # --------------------------------------------------
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      - name: Install MTA Build Tool (mbt)
-        run: npm install -g mbt
+  # --------------------------------------------------
+  # 2. Setup Node.js
+  # --------------------------------------------------
+  - name: Set up Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: "20"
+      cache: npm
 
-      - name: Install root dependencies
-        run: npm install
+  # --------------------------------------------------
+  # 3. Install project dependencies
+  # --------------------------------------------------
+  - name: Install root dependencies
+    run: npm ci
 
-      - name: Build MTA archive
-        run: mbt build
+  # --------------------------------------------------
+  # 4. Install MTA Build Tool
+  # --------------------------------------------------
+  - name: Install MTA Build Tool
+    run: npm install -g mbt
 
-      - name: Install Cloud Foundry CLI
-        run: |
-          curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v8&source=github" | tar -zx
-          sudo mv cf8 /usr/local/bin/cf
-          cf --version
+  # --------------------------------------------------
+  # 5. Build MTA archive
+  # --------------------------------------------------
+  - name: Build MTA archive
+    run: mbt build
 
-      - name: Login to Cloud Foundry
-        run: |
-          cf api "$CF_API"
-          cf auth "$CF_USERNAME" "$CF_PASSWORD"
-          cf target -o "$CF_ORG" -s "$CF_SPACE"
+  # --------------------------------------------------
+  # 6. Install Cloud Foundry CLI
+  # --------------------------------------------------
+  - name: Install Cloud Foundry CLI
+    run: |
+      curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v8&source=github" | tar -zx
+      sudo mv cf8 /usr/local/bin/cf
+      cf --version
 
-      - name: Install multiapps deploy plugin
-        run: cf install-plugin -f multiapps
+  # --------------------------------------------------
+  # 7. Login to SAP BTP Cloud Foundry
+  # --------------------------------------------------
+  - name: Login to Cloud Foundry
+    run: |
+      cf api "$CF_API"
+      cf auth "$CF_USERNAME" "$CF_PASSWORD"
+      cf target -o "$CF_ORG" -s "$CF_SPACE"
 
-      - name: Deploy MTA to Cloud Foundry
-        run: cf deploy mta_archives/*.mtar -f
+  # --------------------------------------------------
+  # 8. Install MultiApps plugin
+  # --------------------------------------------------
+  - name: Install MultiApps plugin
+    run: |
+      cf install-plugin -f multiapps
+      cf plugins
 
-      - name: Show deployed apps
-        run: cf apps
+  # --------------------------------------------------
+  # 9. Deploy MTAR
+  # --------------------------------------------------
+  - name: Deploy MTA to Cloud Foundry
+    run: |
+      MTAR_FILE=$(find mta_archives -name "*.mtar" -type f | head -n 1)
+
+      if [ -z "$MTAR_FILE" ]; then
+        echo "ERROR: No MTAR file found in mta_archives/"
+        exit 1
+      fi
+
+      echo "Deploying: $MTAR_FILE"
+
+      cf deploy "$MTAR_FILE" -f
+
+  # --------------------------------------------------
+  # 10. Show deployment status
+  # --------------------------------------------------
+  - name: Show deployed applications
+    run: |
+      echo "Cloud Foundry target:"
+      cf target
+
+      echo ""
+      echo "Deployed applications:"
+      cf apps
+
+      echo ""
+      echo "MTA deployments:"
+      cf mta employee-management || true
+
