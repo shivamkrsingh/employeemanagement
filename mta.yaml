@@ -74,6 +74,7 @@ modules:
   # 5. DESTINATION CONTENT — this replaces your approuter
   - name: employee-management-destination-content
     type: com.sap.application.content
+    path: .
     requires:
       - name: employee-management-auth
         parameters:
