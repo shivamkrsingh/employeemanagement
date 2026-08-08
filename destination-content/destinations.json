@@ -1,0 +1,22 @@
+{
+  "init_data": {
+    "instance": {
+      "existing_destinations_policy": "update",
+      "destinations": [
+        {
+          "Name": "employee-management-html5-repo-host",
+          "ServiceInstanceName": "employee-management-html5-host",
+          "ServiceKeyName": "employee-management-html5-host-key",
+          "sap.cloud.service": "employee-management"
+        },
+        {
+          "Name": "employee-management-uaa",
+          "Authentication": "OAuth2UserTokenExchange",
+          "ServiceInstanceName": "employee-management-auth",
+          "ServiceKeyName": "employee-management-auth-key",
+          "sap.cloud.service": "employee-management"
+        }
+      ]
+    }
+  }
+}
