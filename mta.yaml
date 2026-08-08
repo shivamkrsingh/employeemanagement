@@ -101,32 +101,9 @@ modules:
           target-path: resources/
 
 
-  # ============================================================
-  # 5. DESTINATION CONTENT
-  #
-  # IMPORTANT:
-  # This uses a separate directory instead of path: .
-  # ============================================================
-
-  - name: employee-management-destination-content
-    type: com.sap.application.content
-    path: destination-content
-
-    requires:
-      - name: employee-management-auth
-        parameters:
-          service-key:
-            name: employee-management-auth-key
-
-      - name: employee-management-html5-host
-        parameters:
-          service-key:
-            name: employee-management-html5-host-key
-
-      - name: employee-management-destination-service
-        parameters:
-          content-target: true
-
+# ================================================================
+# RESOURCES
+# ================================================================
 
 resources:
 
@@ -183,14 +160,20 @@ resources:
 
             destinations:
 
+              # ------------------------------------------------
               # SAPUI5 CDN
+              # ------------------------------------------------
+
               - Name: ui5
                 URL: https://ui5.sap.com
                 ProxyType: Internet
                 Type: HTTP
                 Authentication: NoAuthentication
 
-              # CAP backend
+              # ------------------------------------------------
+              # CAP BACKEND
+              # ------------------------------------------------
+
               - Name: employee-management-srv-api
                 Description: CAP backend service
                 URL: ~{srv-api/srv-url}
