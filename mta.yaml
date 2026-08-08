@@ -3,16 +3,10 @@ ID: employee-management
 description: Employee Management CAP Project
 version: 1.0.0
 
-################################################################
-# GLOBAL PARAMETERS
-################################################################
 parameters:
   deploy_mode: html5-repo
   enable-parallel-deployments: true
 
-################################################################
-# GLOBAL BUILD
-################################################################
 build-parameters:
   before-all:
     - builder: custom
@@ -20,9 +14,6 @@ build-parameters:
         - npm install
         - npx cds build --production
 
-################################################################
-# MODULES
-################################################################
 modules:
 
   # 1. HANA DATABASE DEPLOYER
@@ -64,7 +55,7 @@ modules:
       build-result: dist
       supported-platforms: []
 
-  # 4. HTML5 CONTENT DEPLOYER
+  # 4. HTML5 CONTENT DEPLOYER — uploads the UI5 zip into the repo
   - name: employee-management-app-content
     type: com.sap.application.content
     path: .
@@ -80,33 +71,35 @@ modules:
             - "*.zip"
           target-path: resources/
 
-  # 5. APPLICATION ROUTER
-  - name: employee-management
-    type: approuter.nodejs
-    path: app/router
-    parameters:
-      memory: 256M
-      disk-quota: 256M
-      keep-existing-routes: true
-    provides:
-      - name: app-api
-        properties:
-          app-protocol: ${protocol}
-          app-uri: ${default-uri}
+  # 5. DESTINATION CONTENT — this replaces your approuter
+  - name: employee-management-destination-content
+    type: com.sap.application.content
     requires:
       - name: employee-management-auth
-      - name: employee-management-html5-runtime
+        parameters:
+          service-key:
+            name: employee-management-auth-key
+      - name: employee-management-html5-host
+        parameters:
+          service-key:
+            name: employee-management-html5-host-key
       - name: employee-management-destination-service
-      - name: srv-api
-        group: destinations
-        properties:
-          name: srv-api
-          url: ~{srv-url}
-          forwardAuthToken: true
+        parameters:
+          content-target: true
+    parameters:
+      content:
+        instance:
+          destinations:
+            - Name: employee-management-html5-repo-host
+              ServiceInstanceName: employee-management-html5-host
+              ServiceKeyName: employee-management-html5-host-key
+              sap.cloud.service: employee-management
+            - Name: employee-management-uaa
+              Authentication: OAuth2UserTokenExchange
+              ServiceInstanceName: employee-management-auth
+              ServiceKeyName: employee-management-auth-key
+              sap.cloud.service: employee-management
 
-################################################################
-# RESOURCES
-################################################################
 resources:
 
   # HANA HDI CONTAINER
@@ -116,7 +109,7 @@ resources:
       service: hana
       service-plan: hdi-shared
 
-  # XSUAA AUTHENTICATION
+  # XSUAA — simplified, no longer references an approuter
   - name: employee-management-auth
     type: org.cloudfoundry.managed-service
     parameters:
@@ -126,15 +119,12 @@ resources:
       config:
         xsappname: employee-management-${org}-${space}
         tenant-mode: dedicated
-        oauth2-configuration:
-          redirect-uris:
-            - https://*~{app-api/app-uri}/**
-    requires:
-      - name: app-api
 
-  # DESTINATION SERVICE
+  # DESTINATION SERVICE — now also carries the CAP backend destination
   - name: employee-management-destination-service
     type: org.cloudfoundry.managed-service
+    requires:
+      - name: srv-api
     parameters:
       service: destination
       service-plan: lite
@@ -150,6 +140,14 @@ resources:
                 ProxyType: Internet
                 Type: HTTP
                 Authentication: NoAuthentication
+              - Name: employee-management-srv-api
+                Description: CAP backend service
+                URL: ~{srv-api/srv-url}
+                ProxyType: Internet
+                Type: HTTP
+                Authentication: NoAuthentication
+                HTML5.DynamicDestination: true
+                HTML5.ForwardAuthToken: true
 
   # HTML5 HOST
   - name: employee-management-html5-host

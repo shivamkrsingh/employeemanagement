@@ -1,5 +1,5 @@
 {
-  "welcomeFile": "/appspecproject1/index.html",
+  "welcomeFile": "/index.html",
   "authenticationMethod": "route",
   "routes": [
     {
@@ -17,13 +17,7 @@
     {
       "source": "^/ZAPI_MANAGEMENT_SRV/(.*)$",
       "target": "/ZAPI_MANAGEMENT_SRV/$1",
-      "destination": "srv-api",
-      "authenticationType": "xsuaa"
-    },
-    {
-      "source": "^(.*)$",
-      "target": "$1",
-      "service": "html5-apps-repo-rt",
+      "destination": "employee-management-srv-api",
       "authenticationType": "xsuaa"
     }
   ]
