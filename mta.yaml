@@ -1,4 +1,5 @@
 _schema-version: "3.3.0"
+
 ID: employee-management
 description: Employee Management CAP Project
 version: 1.0.0
@@ -16,131 +17,180 @@ build-parameters:
 
 modules:
 
+  # ============================================================
   # 1. HANA DATABASE DEPLOYER
+  # ============================================================
+
   - name: employee-management-db-deployer
     type: hdb
     path: gen/db
+
     parameters:
       buildpack: nodejs_buildpack
+
     requires:
       - name: employee-management-db
 
+
+  # ============================================================
   # 2. CAP SERVICE
+  # ============================================================
+
   - name: employee-management-srv
     type: nodejs
     path: gen/srv
+
     parameters:
       memory: 512M
       disk-quota: 512M
       buildpack: nodejs_buildpack
+
     build-parameters:
       builder: npm-ci
+
     provides:
       - name: srv-api
         properties:
           srv-url: ${default-url}
+
     requires:
       - name: employee-management-auth
       - name: employee-management-db
 
-  # 3. UI5 APPLICATION MODULE
+
+  # ============================================================
+  # 3. UI5 APPLICATION
+  # ============================================================
+
   - name: appspecproject1
     type: html5
     path: app/project1
+
     build-parameters:
       builder: custom
+
       commands:
         - npm install
         - npm run build:cf
+
       build-result: dist
+
       supported-platforms: []
 
-  # 4. HTML5 CONTENT DEPLOYER — uploads the UI5 zip into the repo
+
+  # ============================================================
+  # 4. HTML5 APPLICATION CONTENT
+  # ============================================================
+
   - name: employee-management-app-content
     type: com.sap.application.content
     path: .
+
     requires:
       - name: employee-management-html5-host
         parameters:
           content-target: true
+
     build-parameters:
       build-result: resources
+
       requires:
         - name: appspecproject1
           artifacts:
             - "*.zip"
           target-path: resources/
 
-  # 5. DESTINATION CONTENT — this replaces your approuter
+
+  # ============================================================
+  # 5. DESTINATION CONTENT
+  #
+  # IMPORTANT:
+  # This uses a separate directory instead of path: .
+  # ============================================================
+
   - name: employee-management-destination-content
     type: com.sap.application.content
-    path: .
+    path: destination-content
+
     requires:
       - name: employee-management-auth
         parameters:
           service-key:
             name: employee-management-auth-key
+
       - name: employee-management-html5-host
         parameters:
           service-key:
             name: employee-management-html5-host-key
+
       - name: employee-management-destination-service
         parameters:
           content-target: true
-    parameters:
-      content:
-        instance:
-          destinations:
-            - Name: employee-management-html5-repo-host
-              ServiceInstanceName: employee-management-html5-host
-              ServiceKeyName: employee-management-html5-host-key
-              sap.cloud.service: employee-management
-            - Name: employee-management-uaa
-              Authentication: OAuth2UserTokenExchange
-              ServiceInstanceName: employee-management-auth
-              ServiceKeyName: employee-management-auth-key
-              sap.cloud.service: employee-management
+
 
 resources:
 
-  # HANA HDI CONTAINER
+  # ============================================================
+  # 1. HANA HDI CONTAINER
+  # ============================================================
+
   - name: employee-management-db
     type: com.sap.xs.hdi-container
+
     parameters:
       service: hana
       service-plan: hdi-shared
 
-  # XSUAA — simplified, no longer references an approuter
+
+  # ============================================================
+  # 2. XSUAA
+  # ============================================================
+
   - name: employee-management-auth
     type: org.cloudfoundry.managed-service
+
     parameters:
       service: xsuaa
       service-plan: application
       path: xs-security.json
+
       config:
         xsappname: employee-management-${org}-${space}
         tenant-mode: dedicated
 
-  # DESTINATION SERVICE — now also carries the CAP backend destination
+
+  # ============================================================
+  # 3. DESTINATION SERVICE
+  # ============================================================
+
   - name: employee-management-destination-service
     type: org.cloudfoundry.managed-service
+
     requires:
       - name: srv-api
+
     parameters:
       service: destination
       service-plan: lite
+
       config:
         HTML5Runtime_enabled: true
         version: 1.0.0
+
         init_data:
           instance:
             existing_destinations_policy: update
+
             destinations:
+
+              # SAPUI5 CDN
               - Name: ui5
                 URL: https://ui5.sap.com
                 ProxyType: Internet
                 Type: HTTP
                 Authentication: NoAuthentication
+
+              # CAP backend
               - Name: employee-management-srv-api
                 Description: CAP backend service
                 URL: ~{srv-api/srv-url}
@@ -150,16 +200,26 @@ resources:
                 HTML5.DynamicDestination: true
                 HTML5.ForwardAuthToken: true
 
-  # HTML5 HOST
+
+  # ============================================================
+  # 4. HTML5 APPLICATION REPOSITORY - HOST
+  # ============================================================
+
   - name: employee-management-html5-host
     type: org.cloudfoundry.managed-service
+
     parameters:
       service: html5-apps-repo
       service-plan: app-host
 
-  # HTML5 RUNTIME
+
+  # ============================================================
+  # 5. HTML5 APPLICATION REPOSITORY - RUNTIME
+  # ============================================================
+
   - name: employee-management-html5-runtime
     type: org.cloudfoundry.managed-service
+
     parameters:
       service: html5-apps-repo
       service-plan: app-runtime
