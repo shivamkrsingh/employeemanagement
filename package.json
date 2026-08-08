@@ -1,0 +1,34 @@
+{
+  "name": "employee-management",
+  "version": "1.0.0",
+  "description": "Employee Management CAP Project",
+  "private": true,
+  "dependencies": {
+    "@cap-js/hana": "^2",
+    "@sap/cds": "^10.0.5",
+    "@sap/xssec": "^4",
+    "express": "4.18.1",
+    "passport": "^0"
+  },
+  "devDependencies": {
+    "@sap/cds-dk": "^10.0.6"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "build": "mbt build --mtar employee-management",
+    "deploy": "cf deploy mta_archives/employee-management.mtar"
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "hana"
+      },
+      "auth": {
+        "kind": "xsuaa"
+      }
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
