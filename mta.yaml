@@ -5,7 +5,6 @@ description: Employee Management CAP Project
 version: 1.0.0
 
 parameters:
-  deploy_mode: html5-repo
   enable-parallel-deployments: true
 
 build-parameters:
@@ -58,49 +57,6 @@ modules:
       - name: employee-management-db
 
 
-  # ============================================================
-  # 3. UI5 APPLICATION
-  # ============================================================
-
-  - name: appspecproject1
-    type: html5
-    path: app/project1
-
-    build-parameters:
-      builder: custom
-
-      commands:
-        - npm install
-        - npm run build:cf
-
-      build-result: dist
-
-      supported-platforms: []
-
-
-  # ============================================================
-  # 4. HTML5 APPLICATION CONTENT
-  # ============================================================
-
-  - name: employee-management-app-content
-    type: com.sap.application.content
-    path: .
-
-    requires:
-      - name: employee-management-html5-host
-        parameters:
-          content-target: true
-
-    build-parameters:
-      build-result: resources
-
-      requires:
-        - name: appspecproject1
-          artifacts:
-            - "*.zip"
-          target-path: resources/
-
-
 # ================================================================
 # RESOURCES
 # ================================================================
@@ -134,75 +90,3 @@ resources:
       config:
         xsappname: employee-management-${org}-${space}
         tenant-mode: dedicated
-
-
-  # ============================================================
-  # 3. DESTINATION SERVICE
-  # ============================================================
-
-  - name: employee-management-destination-service
-    type: org.cloudfoundry.managed-service
-
-    requires:
-      - name: srv-api
-
-    parameters:
-      service: destination
-      service-plan: lite
-
-      config:
-        HTML5Runtime_enabled: true
-        version: 1.0.0
-
-        init_data:
-          instance:
-            existing_destinations_policy: update
-
-            destinations:
-
-              # ------------------------------------------------
-              # SAPUI5 CDN
-              # ------------------------------------------------
-
-              - Name: ui5
-                URL: https://ui5.sap.com
-                ProxyType: Internet
-                Type: HTTP
-                Authentication: NoAuthentication
-
-              # ------------------------------------------------
-              # CAP BACKEND
-              # ------------------------------------------------
-
-              - Name: employee-management-srv-api
-                Description: CAP backend service
-                URL: ~{srv-api/srv-url}
-                ProxyType: Internet
-                Type: HTTP
-                Authentication: NoAuthentication
-                HTML5.DynamicDestination: true
-                HTML5.ForwardAuthToken: true
-
-
-  # ============================================================
-  # 4. HTML5 APPLICATION REPOSITORY - HOST
-  # ============================================================
-
-  - name: employee-management-html5-host
-    type: org.cloudfoundry.managed-service
-
-    parameters:
-      service: html5-apps-repo
-      service-plan: app-host
-
-
-  # ============================================================
-  # 5. HTML5 APPLICATION REPOSITORY - RUNTIME
-  # ============================================================
-
-  - name: employee-management-html5-runtime
-    type: org.cloudfoundry.managed-service
-
-    parameters:
-      service: html5-apps-repo
-      service-plan: app-runtime
